@@ -1,1 +1,62 @@
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Qawafel | Financing Readiness</title>
+<style>
+body{font-family:Arial,sans-serif;background:#f3f6f8;color:#173042;margin:0}
+header{background:#123344;color:white;padding:24px 7%}
+main{max-width:1000px;margin:30px auto;padding:0 18px}
+h1{margin-bottom:8px}.muted{color:#657786}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px}
+.card{background:white;border:1px solid #dfe7eb;border-radius:12px;padding:20px;margin-bottom:16px}
+.metric{font-size:27px;font-weight:bold;margin:10px 0}
+table{width:100%;border-collapse:collapse;background:white}
+th,td{text-align:left;padding:12px;border-bottom:1px solid #e6ecef}
+th{background:#eaf1f4}
+button{background:#087f8c;color:white;padding:11px 15px;border:0;border-radius:7px;cursor:pointer}
+.tag{background:#e0f5e9;color:#176b47;padding:5px 9px;border-radius:15px}
+.warning{background:#fff3d6;padding:14px;border-radius:8px;margin-top:14px}
+@media(max-width:600px){table{font-size:12px}th,td{padding:8px}}
+</style>
+</head>
+<body>
+<header><h2>qawafel.</h2><div>SME FINANCING READINESS · PROTOTYPE</div></header>
+<main>
+<h1>Financing readiness overview</h1>
+<p class="muted">Review 12 months of sample invoice activity before preparing a financing package.</p>
+<div class="cards">
+<div class="card"><div class="muted">Total invoice sales</div><div class="metric" id="sales">—</div><div class="muted">12-month period · SAR</div></div>
+<div class="card"><div class="muted">Number of invoices</div><div class="metric" id="count">—</div><div class="muted">Sample invoice records</div></div>
+<div class="card"><div class="muted">Invoices marked paid</div><div class="metric" id="paid">—</div><div class="muted">Percentage of invoices</div></div>
+<div class="card"><div class="muted">Period coverage</div><div class="metric">12 / 12</div><div class="muted">Oct 2025 – Sep 2026</div></div>
+</div>
+<div class="card"><h2>Monthly invoice sales</h2><p class="muted">Calculated from the sample invoice records.</p><div id="months"></div></div>
+<div class="card"><h2>Data quality checks</h2><p><span class="tag">Passed</span> No duplicate invoice IDs in the sample.</p><p><span class="tag">Passed</span> Invoice amounts are positive numbers.</p><p><span class="tag">Passed</span> Invoice dates cover all 12 months.</p><p><strong>Needs review:</strong> Bank statement reconciliation cannot be completed because bank transaction data is not included.</p><div class="warning"><strong>Prototype status: Ready for analyst review.</strong><br>This is not a credit approval. The bank makes the final financing decision.</div></div>
+<div class="card"><h2>Sample invoices</h2><p class="muted">Fictional data created for this assessment.</p><button onclick="downloadCSV()">Download sample invoice CSV</button><div style="overflow-x:auto;margin-top:16px"><table><thead><tr><th>Invoice ID</th><th>Date</th><th>Customer</th><th>Amount (SAR)</th><th>Status</th></tr></thead><tbody id="rows"></tbody></table></div></div>
+<p class="muted">Assessment prototype only. No real customer data or bank API is connected.</p>
+</main>
+<script>
+const monthly=[84200,91500,103800,88700,96400,119200,101500,112300,108900,126700,121400,134600];
+const labels=["Oct 25","Nov 25","Dec 25","Jan 26","Feb 26","Mar 26","Apr 26","May 26","Jun 26","Jul 26","Aug 26","Sep 26"];
+const invoices=[];
+monthly.forEach((total,m)=>{
+  for(let i=0;i<10;i++){
+    const amount=+(total/10*(0.8+((i*7+m*3)%9)/20)).toFixed(2);
+    invoices.push({id:"INV-"+String(m*10+i+1).padStart(4,"0"),date:labels[m],customer:["Al Noor Trading","Riyadh Supplies Co.","Eastern Market LLC","Al Waha Stores"][i%4],amount:amount,status:(i+m)%4===0?"Unpaid":"Paid"});
+  }
+});
+const money=n=>"SAR "+Math.round(n).toLocaleString("en-US");
+document.getElementById("sales").textContent=money(monthly.reduce((a,b)=>a+b,0));
+document.getElementById("count").textContent=invoices.length;
+document.getElementById("paid").textContent=Math.round(invoices.filter(x=>x.status==="Paid").length/invoices.length*100)+"%";
+document.getElementById("months").innerHTML=monthly.map((v,i)=>'<div style="display:flex;align-items:center;gap:10px;margin:9px 0"><span style="width:55px;font-size:12px">'+labels[i]+'</span><div style="background:#087f8c;height:18px;border-radius:4px;width:'+v/Math.max(...monthly)*55+'%"></div><span style="font-size:12px">'+money(v)+'</span></div>').join("");
+document.getElementById("rows").innerHTML=invoices.slice(0,8).map(x=>'<tr><td>'+x.id+'</td><td>'+x.date+'</td><td>'+x.customer+'</td><td>'+money(x.amount)+'</td><td>'+x.status+'</td></tr>').join("");
+function downloadCSV(){
+ const csv="invoice_id,invoice_date,customer_name,amount_sar,status\n"+invoices.map(x=>[x.id,x.date,x.customer,x.amount,x.status].join(",")).join("\n");
+ const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="sample_invoices.csv";a.click();URL.revokeObjectURL(a.href);
+}
+</script>
+</body>
+</html>
