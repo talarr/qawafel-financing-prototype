@@ -66,6 +66,102 @@ function downloadCSV(){
  const csv="invoice_id,invoice_date,customer_name,amount_sar,status\n"+invoices.map(x=>[x.id,x.date,x.customer,x.amount,x.status].join(",")).join("\n");
  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="sample_invoices.csv";a.click();URL.revokeObjectURL(a.href);
 }
+  function validateUploadedCSV(){
+  const fileInput = document.getElementById("invoiceUpload");
+  const output = document.getElementById("uploadResults");
+  const file = fileInput.files[0];
+
+  if (!file) {
+    output.innerHTML = '<p style="color:#b42318">Please select a CSV file first.</p>';
+    return;
+  }
+
+  const reader = new FileReader();
+
+  reader.onload = function(event) {
+    const lines = event.target.result.trim().split(/\r?\n/);
+
+    if (lines.length < 2) {
+      output.innerHTML = '<p style="color:#b42318">The CSV file has no invoice records.</p>';
+      return;
+    }
+
+    const headers = lines[0].split(",").map(h =>
+      h.trim().toLowerCase().replace(/^"|"$/g, "")
+    );
+
+    const required = [
+      "invoice_id",
+      "invoice_date",
+      "customer_name",
+      "amount_sar",
+      "status"
+    ];
+
+    const missing = required.filter(h => !headers.includes(h));
+
+    if (missing.length) {
+      output.innerHTML =
+        '<p style="color:#b42318">Missing required columns: ' +
+        missing.join(", ") + '</p>';
+      return;
+    }
+
+    const indexes = Object.fromEntries(
+      required.map(h => [h, headers.indexOf(h)])
+    );
+
+    const ids = new Set();
+    const issues = [];
+    let valid = 0;
+
+    lines.slice(1).forEach((line, i) => {
+      if (!line.trim()) return;
+
+      const cells = line.split(",").map(v =>
+        v.trim().replace(/^"|"$/g, "")
+      );
+
+      const id = cells[indexes.invoice_id];
+      const date = cells[indexes.invoice_date];
+      const customer = cells[indexes.customer_name];
+      const amountText = cells[indexes.amount_sar];
+      const amount = Number(amountText);
+      const status = cells[indexes.status];
+      const rowNo = i + 2;
+
+      if (!id || !date || !customer || !amountText || !status) {
+        issues.push("Row " + rowNo + ": missing value.");
+        return;
+      }
+
+      if (ids.has(id)) {
+        issues.push("Row " + rowNo + ": duplicate invoice ID " + id + ".");
+        return;
+      }
+
+      ids.add(id);
+
+      if (!Number.isFinite(amount) || amount <= 0) {
+        issues.push("Row " + rowNo + ": amount must be a positive number.");
+        return;
+      }
+
+      valid++;
+    });
+
+    output.innerHTML =
+      '<p><strong>Rows checked:</strong> ' + (lines.length - 1) +
+      ' | <strong>Valid rows:</strong> ' + valid +
+      ' | <strong>Issues:</strong> ' + issues.length + '</p>' +
+      (issues.length
+        ? '<ul>' + issues.slice(0, 10).map(x => '<li>' + x + '</li>').join("") + '</ul>'
+        : '<p style="color:#16805d">No validation issues found.</p>') +
+      '<p class="muted">This is a basic prototype check. Please review source documents before using financial data.</p>';
+  };
+
+  reader.readAsText(file);
+}
 </script>
 </body>
 </html>
